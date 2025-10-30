@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCage Geocoding API</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- LEAFLET CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #b0b0b0;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(90, 103, 216, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(107, 70, 193, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #4c51bf 0%, #5f3dc6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto 80px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container { grid-template-columns: 1fr; gap: 30px; }
+        }
+
+        .form-section, .results-section {
+            background: rgba(20, 20, 25, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            transition: 0.3s ease;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #d0d0d0;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        form { display: flex; flex-direction: column; gap: 15px; }
+
+        label {
+            font-weight: 500;
+            color: #a0a0a0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            padding: 15px 20px;
+            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            background: rgba(30, 30, 35, 0.9);
+            color: #d0d0d0;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4c51bf;
+            background: rgba(40, 40, 45, 0.9);
+            box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.3);
+            color: #fff;
+        }
+
+        input[type="text"]::placeholder { color: #707070; }
+
+        button {
+            padding: 15px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #4c51bf 0%, #5f3dc6 100%);
+            color: #d0d0d0;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 81, 191, 0.5);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #434c9e 0%, #5539a8 100%);
+            color: #fff;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-results {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px solid rgba(34, 197, 94, 0.1);
+            border-radius: 12px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .success-results h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #16a34a;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .success-results .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .success-results .result-item:last-child { border-bottom: none; }
+
+        #map {
+            width: 100%;
+            height: 450px;
+            border-radius: 12px;
+            margin-top: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #fff !important; /* ✅ Light background for map */
+            filter: none !important;      /* ✅ Prevent dark overlay */
+        }
+
+        .leaflet-container {
+            background: #fff !important;
+            border-radius: 12px !important;
+            filter: none !important;
+        }
+
+        footer {
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            text-align: center;
+            color: #808080;
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+
+        footer .name { font-weight: 600; color: #b0b0b0; margin-bottom: 5px; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(10, 10, 15, 0.9); }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #4c51bf 0%, #5f3dc6 100%);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #434c9e 0%, #5539a8 100%);
+        }
+    </style>
+</head>
+<body>
+    <h1>J.WORLD Geocoding</h1>
+    <div class="main-container">
+        <div class="form-section">
+            <h2 class="section-title"><i class="fas fa-search"></i>Search Address</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <label for="address"><i class="fas fa-map-marker-alt"></i>Enter Address</label>
+                <input type="text" id="address" name="address" placeholder="e.g., New York, USA" required>
+                <button type="submit"><i class="fas fa-globe"></i>Geocode Address</button>
+            </form>
+            {% if data.status == 'error' %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ data.message }}
+                </div>
+            {% endif %}
+            {% if data.status == 'success' %}
+                <div class="success-results">
+                    <h3><i class="fas fa-check-circle"></i>Results for: {{ data.address }}</h3>
+                    <div class="result-item">
+                        <span class="result-label"><i class="fas fa-map-pin"></i>Latitude:</span>
+                        <span class="result-value">{{ data.latitude }}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label"><i class="fas fa-compass"></i>Longitude:</span>
+                        <span class="result-value">{{ data.longitude }}</span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="results-section">
+            <h2 class="section-title"><i class="fas fa-map"></i>Geocoding Map</h2>
+            {% if data.status == 'success' %}
+                <div id="map"></div>
+            {% else %}
+                <div class="result-box">
+                    <div class="placeholder-text">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Enter an address above to view the location on the map.
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        <div class="name">Jay Sompura</div>
+        <div>&copy; 2025 J.WORLD Geocoding</div>
+    </footer>
+
+    <!-- LEAFLET JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    {% if data.status == 'success' %}
+    <script>
+        var lat = {{ data.latitude }};
+        var lng = {{ data.longitude }};
+        var map = L.map('map').setView([lat, lng], 13);
+
+        // ✅ Always load light OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup('Here is {{ data.address }}')
+            .openPopup();
+    </script>
+    {% endif %}
+</body>
+</html>

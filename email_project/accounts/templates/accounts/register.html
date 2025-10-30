@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Registration</title>
+</head>
+<body>
+  <h2>Register Here</h2>
+  <form method="POST">
+    {% csrf_token %}
+    <label>Username:</label>
+    <input type="text" name="username" required><br><br>
+
+    <label>Email:</label>
+    <input type="email" name="email" required><br><br>
+
+    <button type="submit">Register</button>
+  </form>
+
+  {% if messages %}
+    <ul>
+      {% for msg in messages %}
+        <li>{{ msg }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</body>
+</html>
